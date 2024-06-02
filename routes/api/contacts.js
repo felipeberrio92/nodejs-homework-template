@@ -109,7 +109,7 @@ router.put("/:contactId", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", async (req, res, next) => {
   try {
     let status = 0;
     const favorite = req.body.favorite;
