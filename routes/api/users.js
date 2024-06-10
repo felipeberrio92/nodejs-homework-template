@@ -33,7 +33,7 @@ router.post("/login", async (req, res, next) => {
       await updateToken(getUser.id, token);
 
       res.status(200);
-      res.json({ token });
+      res.json({ email: value.email, token });
     }
   } catch (error) {
     console.error(error);
