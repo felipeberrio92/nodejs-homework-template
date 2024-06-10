@@ -60,7 +60,6 @@ const removeContact = async ({ id: contactId }) => {
 const addContact = async (body, email) => {
   try {
     const createdBy = await users.findOne({ email }).exec();
-    console.log(createdBy);
     const newContact = await contacts.create({
       ...body,
       favorite: false,

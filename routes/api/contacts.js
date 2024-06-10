@@ -24,14 +24,11 @@ router.get("/", verifyToken, async (req, res, next) => {
       );
       res.json({ data: favoritedata });
     } else if (req.query.page && req.query.limit) {
-      console.log(req.query.page);
-      console.log(req.query.limit);
       const paramData = await listContactParams(
         req.email,
         req.query.page,
         req.query.limit
       );
-      console.log(paramData);
       res.json({
         data: paramData,
       });
@@ -75,7 +72,7 @@ router.post("/", verifyToken, async (req, res, next) => {
       res.json(newContact);
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
@@ -85,7 +82,7 @@ router.delete("/:contactId", verifyToken, async (req, res, next) => {
     let status = 0;
     const { error, value } = id.validate({ id: req.params.contactId });
     if (error) {
-      console.log(error);
+      console.error(error);
     } else {
       const contactToRemove = await removeContact(value);
       if (contactToRemove == null) {
@@ -99,7 +96,7 @@ router.delete("/:contactId", verifyToken, async (req, res, next) => {
       res.json({ message });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
@@ -128,7 +125,7 @@ router.put("/:contactId", verifyToken, async (req, res, next) => {
       res.status(status).json({ value });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
@@ -155,7 +152,7 @@ router.patch("/:contactId/favorite", verifyToken, async (req, res, next) => {
       res.status(status).json({ value });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
