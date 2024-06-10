@@ -84,7 +84,7 @@ router.post("/logout", verifyToken, async (req, res, next) => {
   }
 });
 
-router.post("/current", verifyToken, async (req, res, next) => {
+router.get("/current", verifyToken, async (req, res, next) => {
   try {
     const getUser = await getUserByEmail(req.email);
     res.status(200);
