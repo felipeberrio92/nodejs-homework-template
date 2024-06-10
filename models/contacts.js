@@ -10,6 +10,21 @@ const listContacts = async (email) => {
   }
 };
 
+const listContactParams = async (email, page, limit) => {
+  try {
+    const createdBy = await users.findOne({ email }).exec();
+    const contactsList = await contacts
+      .find({
+        owner: createdBy._id,
+      })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    return contactsList;
+  } catch (error) {
+    return { error };
+  }
+};
+
 const listFavoriteContacts = async (email, favorite) => {
   try {
     const createdBy = await users.findOne({ email }).exec();
@@ -87,4 +102,5 @@ module.exports = {
   updateContact,
   updateFavoriteStatusContact,
   listFavoriteContacts,
+  listContactParams,
 };

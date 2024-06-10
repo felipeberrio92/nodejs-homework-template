@@ -7,6 +7,7 @@ const {
   updateContact,
   updateFavoriteStatusContact,
   listFavoriteContacts,
+  listContactParams,
 } = require("../../models/contacts");
 
 const router = express.Router();
@@ -16,14 +17,24 @@ const verifyToken = require("../../middlewares/auth.middleware");
 
 router.get("/", verifyToken, async (req, res, next) => {
   try {
-    console.log(req.query);
     if (req.query.favorite) {
-      console.log("entra");
       const favoritedata = await listFavoriteContacts(
         req.email,
         req.query.favorite
       );
       res.json({ data: favoritedata });
+    } else if (req.query.page && req.query.limit) {
+      console.log(req.query.page);
+      console.log(req.query.limit);
+      const paramData = await listContactParams(
+        req.email,
+        req.query.page,
+        req.query.limit
+      );
+      console.log(paramData);
+      res.json({
+        data: paramData,
+      });
     } else {
       const data = await listContacts(req.email);
       res.json({
