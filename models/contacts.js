@@ -1,9 +1,39 @@
-const contactSchema = require("../validation/validation.db");
+const { contacts, users } = require("../validation/validation.db");
 
-const listContacts = async () => {
+const listContacts = async (email) => {
   try {
-    const contacts = await contactSchema.find();
-    return contacts;
+    const createdBy = await users.findOne({ email }).exec();
+    const contactsList = await contacts.find({ owner: createdBy._id });
+    return contactsList;
+  } catch (error) {
+    return { error };
+  }
+};
+
+const listContactParams = async (email, page, limit) => {
+  try {
+    const createdBy = await users.findOne({ email }).exec();
+    const contactsList = await contacts
+      .find({
+        owner: createdBy._id,
+      })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    return contactsList;
+  } catch (error) {
+    return { error };
+  }
+};
+
+const listFavoriteContacts = async (email, favorite) => {
+  try {
+    const createdBy = await users.findOne({ email }).exec();
+    const favoriteQuery = favorite === "true";
+    const contactsList = await contacts.find({
+      favorite: favoriteQuery,
+      owner: createdBy._id,
+    });
+    return contactsList;
   } catch (error) {
     return { error };
   }
@@ -11,7 +41,7 @@ const listContacts = async () => {
 
 const getContactById = async (contactId) => {
   try {
-    const contact = await contactSchema.findById(contactId).exec();
+    const contact = await contacts.findById(contactId).exec();
     return contact;
   } catch (error) {
     return { error };
@@ -20,18 +50,21 @@ const getContactById = async (contactId) => {
 
 const removeContact = async ({ id: contactId }) => {
   try {
-    console.log(contactId);
-    const contactRemoved = await contactSchema.findByIdAndDelete(contactId);
+    const contactRemoved = await contacts.findByIdAndDelete(contactId);
     return contactRemoved;
   } catch (error) {
     return { error };
   }
 };
 
-const addContact = async (body) => {
+const addContact = async (body, email) => {
   try {
-    const newContact = await contactSchema.create({ ...body, favorite: false });
-    console.log(newContact);
+    const createdBy = await users.findOne({ email }).exec();
+    const newContact = await contacts.create({
+      ...body,
+      favorite: false,
+      owner: createdBy._id,
+    });
     return { newContact, status: 200 };
   } catch (error) {
     return { error };
@@ -40,7 +73,7 @@ const addContact = async (body) => {
 
 const updateContact = async (contactId, body) => {
   try {
-    const contactToUpdate = await contactSchema
+    const contactToUpdate = await contacts
       .findByIdAndUpdate(contactId, body)
       .exec();
     return contactToUpdate;
@@ -51,7 +84,7 @@ const updateContact = async (contactId, body) => {
 
 const updateFavoriteStatusContact = async (contactId, body) => {
   try {
-    const contactToUpdateFavorite = await contactSchema
+    const contactToUpdateFavorite = await contacts
       .findByIdAndUpdate(contactId, body)
       .exec();
     return contactToUpdateFavorite;
@@ -67,4 +100,6 @@ module.exports = {
   addContact,
   updateContact,
   updateFavoriteStatusContact,
+  listFavoriteContacts,
+  listContactParams,
 };

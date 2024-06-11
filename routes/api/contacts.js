@@ -6,24 +6,44 @@ const {
   removeContact,
   updateContact,
   updateFavoriteStatusContact,
+  listFavoriteContacts,
+  listContactParams,
 } = require("../../models/contacts");
 
 const router = express.Router();
 
 const { schema, id, favorite: fav } = require("../../validation/validation");
+const verifyToken = require("../../middlewares/auth.middleware");
 
-router.get("/", async (req, res, next) => {
+router.get("/", verifyToken, async (req, res, next) => {
   try {
-    const data = await listContacts();
-    res.json({
-      data: data,
-    });
+    if (req.query.favorite) {
+      const favoritedata = await listFavoriteContacts(
+        req.email,
+        req.query.favorite
+      );
+      res.json({ data: favoritedata });
+    } else if (req.query.page && req.query.limit) {
+      const paramData = await listContactParams(
+        req.email,
+        req.query.page,
+        req.query.limit
+      );
+      res.json({
+        data: paramData,
+      });
+    } else {
+      const data = await listContacts(req.email);
+      res.json({
+        data: data,
+      });
+    }
   } catch (error) {
     console.error(error);
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", verifyToken, async (req, res, next) => {
   try {
     const contact = await getContactById(req.params.contactId);
     if (contact == null) {
@@ -37,7 +57,7 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", verifyToken, async (req, res, next) => {
   try {
     const name = req.body.name;
     const email = req.body.email;
@@ -47,22 +67,22 @@ router.post("/", async (req, res, next) => {
       res.status(400);
       res.json(error.details);
     } else {
-      const newContact = await addContact(value);
+      const newContact = await addContact(value, req.email);
       res.status(newContact.status);
       res.json(newContact);
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", verifyToken, async (req, res, next) => {
   try {
     let message = "";
     let status = 0;
     const { error, value } = id.validate({ id: req.params.contactId });
     if (error) {
-      console.log(error);
+      console.error(error);
     } else {
       const contactToRemove = await removeContact(value);
       if (contactToRemove == null) {
@@ -76,11 +96,11 @@ router.delete("/:contactId", async (req, res, next) => {
       res.json({ message });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
+router.put("/:contactId", verifyToken, async (req, res, next) => {
   try {
     let status = 0;
     const name = req.body.name;
@@ -105,11 +125,11 @@ router.put("/:contactId", async (req, res, next) => {
       res.status(status).json({ value });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
-router.patch("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", verifyToken, async (req, res, next) => {
   try {
     let status = 0;
     const favorite = req.body.favorite;
@@ -132,7 +152,7 @@ router.patch("/:contactId/favorite", async (req, res, next) => {
       res.status(status).json({ value });
     }
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
