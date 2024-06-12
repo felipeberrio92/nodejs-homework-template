@@ -1,6 +1,7 @@
-const { users } = require("../validation/validation.db");
+const users = require("../validation/user.validationdb");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
 
 const getUserByEmail = async (_email) => {
   try {
@@ -18,7 +19,13 @@ const createUser = async (body) => {
       parseInt(process.env.SALT)
     );
     const token = jwt.sign({ ...body, password }, process.env.JWT_SECRET);
-    const newContact = await users.create({ ...body, password, token });
+    const avatarURL = gravatar.url(body.email, { protocol: "https" });
+    const newContact = await users.create({
+      ...body,
+      password,
+      avatarURL,
+      token,
+    });
     return newContact;
   } catch (error) {
     console.error(error);
@@ -69,6 +76,14 @@ const updateSubscription = async (id, typeSubscription) => {
   }
 };
 
+const updateAvatarURL = async (id, avatarURL) => {
+  try {
+    await users.findByIdAndUpdate(id, { avatarURL });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 module.exports = {
   getUserByEmail,
   createUser,
@@ -76,4 +91,5 @@ module.exports = {
   generateToken,
   updateToken,
   updateSubscription,
+  updateAvatarURL,
 };

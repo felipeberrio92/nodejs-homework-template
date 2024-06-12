@@ -1,4 +1,5 @@
-const { contacts, users } = require("../validation/validation.db");
+const contacts = require("../validation/contact.validationdb");
+const users = require("../validation/user.validationdb");
 
 const listContacts = async (email) => {
   try {

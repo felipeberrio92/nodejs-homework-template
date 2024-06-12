@@ -7,9 +7,18 @@ const {
   generateToken,
   updateToken,
   updateSubscription,
+  updateAvatarURL,
 } = require("../../models/users");
 const verifyToken = require("../../middlewares/auth.middleware");
 const router = express.Router();
+
+const multer = require("multer");
+const storage = require("../../middlewares/static.middleware");
+const upload = multer({ storage });
+
+const path = require("path");
+const fs = require("fs");
+const jimp = require("jimp");
 
 router.post("/login", async (req, res, next) => {
   try {
@@ -106,5 +115,34 @@ router.patch("/", verifyToken, async (req, res, next) => {
     console.error(error);
   }
 });
+
+router.patch(
+  "/avatars",
+  verifyToken,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      console.log(req.file);
+      const getUser = await getUserByEmail(req.email);
+      const filepath =
+        process.env.STATIC_AVATARS +
+        `avatar-${getUser.id}` +
+        path.extname(req.file.originalname);
+      const image = await jimp.read(req.file.path);
+      image.resize(250, 250);
+      image.write(filepath);
+      await updateAvatarURL(
+        getUser.id,
+        process.env.HOST + filepath.split("public/")[1]
+      );
+      fs.unlink(req.file.path, (error) => error);
+      res.status(200).json({
+        avatarURL: process.env.HOST + filepath.split("public/")[1],
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+);
 
 module.exports = router;
