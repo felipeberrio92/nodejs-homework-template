@@ -1,7 +1,6 @@
 const { getUserByEmail } = require("../models/users");
 
 const verifyAccount = async (req, res, next) => {
-  console.log(req.email);
   try {
     const { verify } = await getUserByEmail(req.email);
     if (verify) {
