@@ -1,5 +1,5 @@
 const express = require("express");
-const { userSchema } = require("../../validation/user.validation");
+const { userSchema, email } = require("../../validation/user.validation");
 const {
   getUserByEmail,
   createUser,
@@ -8,6 +8,8 @@ const {
   updateToken,
   updateSubscription,
   updateAvatarURL,
+  getUserByTk,
+  updateVerificationStatus,
 } = require("../../models/users");
 const verifyToken = require("../../middlewares/auth.middleware");
 const router = express.Router();
@@ -19,6 +21,9 @@ const upload = multer({ storage });
 const path = require("path");
 const fs = require("fs");
 const jimp = require("jimp");
+
+const verifyAccount = require("../../middlewares/verifiedAccount.middleware");
+const transporter = require("../../utils/nodemailer.utils");
 
 router.post("/login", async (req, res, next) => {
   try {
@@ -71,6 +76,14 @@ router.post("/signup", async (req, res, next) => {
         return;
       } else {
         const newUser = await createUser(value);
+        await transporter.sendMail({
+          from: process.env.USER_SMTP,
+          to: value.email,
+          subject: "Please verify your account",
+          html: `<p>email sent by ${process.env.USER_SMTP}</p>
+                <a target="_blank" href=${process.env.HOST}api/users/verify/${newUser.verificationToken}>Click here to verify account</a>
+              or copy and paste link below: <p>${process.env.HOST}api/users/verify/${newUser.verificationToken}</p>`,
+        });
         res.status(201);
         res.json(newUser);
       }
@@ -80,7 +93,7 @@ router.post("/signup", async (req, res, next) => {
   }
 });
 
-router.post("/logout", verifyToken, async (req, res, next) => {
+router.post("/logout", verifyToken, verifyAccount, async (req, res, next) => {
   try {
     const getUser = await getUserByEmail(req.email);
 
@@ -93,7 +106,7 @@ router.post("/logout", verifyToken, async (req, res, next) => {
   }
 });
 
-router.get("/current", verifyToken, async (req, res, next) => {
+router.get("/current", verifyToken, verifyAccount, async (req, res, next) => {
   try {
     const getUser = await getUserByEmail(req.email);
     res.status(200);
@@ -103,7 +116,7 @@ router.get("/current", verifyToken, async (req, res, next) => {
   }
 });
 
-router.patch("/", verifyToken, async (req, res, next) => {
+router.patch("/", verifyToken, verifyAccount, async (req, res, next) => {
   try {
     if (req.body.subscription) {
       const getUser = await getUserByEmail(req.email);
@@ -119,6 +132,7 @@ router.patch("/", verifyToken, async (req, res, next) => {
 router.patch(
   "/avatars",
   verifyToken,
+  verifyAccount,
   upload.single("file"),
   async (req, res) => {
     try {
@@ -144,5 +158,61 @@ router.patch(
     }
   }
 );
+
+router.get("/verify/:verificationToken", async (req, res) => {
+  try {
+    const findUserByVT = await getUserByTk(req.params.verificationToken);
+    if (findUserByVT === null) {
+      res.status(404);
+      res.json({
+        message: "not found",
+      });
+      return;
+    }
+    await updateVerificationStatus(findUserByVT.id);
+    return res.status(200).json({ message: "verification successfull" });
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+router.post("/verify", verifyToken, async (req, res) => {
+  try {
+    const { error, value } = email.validate({ email: req.body.email });
+    if (error) {
+      res.status(400);
+      res.json({
+        message: "missing required field email",
+      });
+      return;
+    }
+    const findUserByEmail = await getUserByEmail(value.email);
+    if (findUserByEmail === null) {
+      res.status(404);
+      res.json({
+        message: "not found",
+      });
+      return;
+    }
+    if (!findUserByEmail.verify) {
+      await transporter.sendMail({
+        from: process.env.USER_SMTP,
+        to: value.email,
+        subject: "Please verify your account",
+        html: `<p>email sent by ${process.env.USER_SMTP}</p>
+            <a target="_blank" href=${process.env.HOST}api/users/verify/${findUserByEmail.verificationToken}>Click here to verify account</a>
+              or copy and paste link below: <p>${process.env.HOST}api/users/verify/${findUserByEmail.verificationToken}</p>`,
+      });
+      return res
+        .status(200)
+        .json({ message: "Verification email sent, please verify your inbox" });
+    }
+    return res
+      .status(400)
+      .json({ message: "Verification has already been passed" });
+  } catch (error) {
+    console.error(error);
+  }
+});
 
 module.exports = router;

@@ -1,9 +1,22 @@
 const Joi = require("joi");
+
 const userSchema = Joi.object({
   email: Joi.string()
-    .email({ minDomainSegments: 2, tlds: { allow: ["com", "net"] } })
+    .email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net", "email", "co", "es"] },
+    })
     .required(),
   password: Joi.string().required(),
 });
 
-module.exports = { userSchema };
+const email = Joi.object({
+  email: Joi.string()
+    .email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net", "email", "co", "es"] },
+    })
+    .required(),
+});
+
+module.exports = { userSchema, email };
