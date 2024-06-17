@@ -13,9 +13,8 @@ const {
 const router = express.Router();
 
 const { schema, id, favorite: fav } = require("../../validation/validation");
-const verifyToken = require("../../middlewares/auth.middleware");
 
-router.get("/", verifyToken, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     if (req.query.favorite) {
       const favoritedata = await listFavoriteContacts(
@@ -43,7 +42,7 @@ router.get("/", verifyToken, async (req, res, next) => {
   }
 });
 
-router.get("/:contactId", verifyToken, async (req, res, next) => {
+router.get("/:contactId", async (req, res, next) => {
   try {
     const contact = await getContactById(req.params.contactId);
     if (contact == null) {
@@ -57,7 +56,7 @@ router.get("/:contactId", verifyToken, async (req, res, next) => {
   }
 });
 
-router.post("/", verifyToken, async (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
     const name = req.body.name;
     const email = req.body.email;
@@ -76,7 +75,7 @@ router.post("/", verifyToken, async (req, res, next) => {
   }
 });
 
-router.delete("/:contactId", verifyToken, async (req, res, next) => {
+router.delete("/:contactId", async (req, res, next) => {
   try {
     let message = "";
     let status = 0;
@@ -100,7 +99,7 @@ router.delete("/:contactId", verifyToken, async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", verifyToken, async (req, res, next) => {
+router.put("/:contactId", async (req, res, next) => {
   try {
     let status = 0;
     const name = req.body.name;
@@ -129,7 +128,7 @@ router.put("/:contactId", verifyToken, async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId/favorite", verifyToken, async (req, res, next) => {
+router.patch("/:contactId/favorite", async (req, res, next) => {
   try {
     let status = 0;
     const favorite = req.body.favorite;

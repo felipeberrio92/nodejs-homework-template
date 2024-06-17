@@ -2,11 +2,31 @@ const users = require("../validation/user.validationdb");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
+const { v4: uuidv4 } = require("uuid");
 
 const getUserByEmail = async (_email) => {
   try {
     const userExist = await users.findOne({ email: _email }).exec();
     return userExist;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const getUserByTk = async (token) => {
+  try {
+    const userExist = await users.findOne({ verificationToken: token }).exec();
+    return userExist;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const updateVerificationStatus = async (id) => {
+  try {
+    await users
+      .findByIdAndUpdate(id, { verificationToken: null, verify: true })
+      .exec();
   } catch (error) {
     console.error(error);
   }
@@ -24,6 +44,7 @@ const createUser = async (body) => {
       ...body,
       password,
       avatarURL,
+      verificationToken: uuidv4(),
       token,
     });
     return newContact;
@@ -92,4 +113,6 @@ module.exports = {
   updateToken,
   updateSubscription,
   updateAvatarURL,
+  getUserByTk,
+  updateVerificationStatus,
 };
