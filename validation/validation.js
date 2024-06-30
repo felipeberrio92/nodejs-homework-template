@@ -15,8 +15,4 @@ const id = Joi.object({
   id: Joi.string().required(),
 });
 
-const favorite = Joi.object({
-  favorite: Joi.boolean().required(),
-});
-
-module.exports = { schema, id, favorite };
+module.exports = { schema, id };

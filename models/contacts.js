@@ -1,40 +1,13 @@
-const contacts = require("../validation/contact.validationdb");
-const users = require("../validation/user.validationdb");
+const fs = require("fs/promises");
+const path = require("path");
+const { v4: uuid } = require("uuid");
 
-const listContacts = async (email) => {
-  try {
-    const createdBy = await users.findOne({ email }).exec();
-    const contactsList = await contacts.find({ owner: createdBy._id });
-    return contactsList;
-  } catch (error) {
-    return { error };
-  }
-};
+const contactsPath = path.join(".", "models", "contacts.json");
 
-const listContactParams = async (email, page, limit) => {
+const listContacts = async () => {
   try {
-    const createdBy = await users.findOne({ email }).exec();
-    const contactsList = await contacts
-      .find({
-        owner: createdBy._id,
-      })
-      .skip((page - 1) * limit)
-      .limit(limit);
-    return contactsList;
-  } catch (error) {
-    return { error };
-  }
-};
-
-const listFavoriteContacts = async (email, favorite) => {
-  try {
-    const createdBy = await users.findOne({ email }).exec();
-    const favoriteQuery = favorite === "true";
-    const contactsList = await contacts.find({
-      favorite: favoriteQuery,
-      owner: createdBy._id,
-    });
-    return contactsList;
+    const contacts = await fs.readFile(contactsPath);
+    return contacts.toString();
   } catch (error) {
     return { error };
   }
@@ -42,8 +15,17 @@ const listFavoriteContacts = async (email, favorite) => {
 
 const getContactById = async (contactId) => {
   try {
-    const contact = await contacts.findById(contactId).exec();
-    return contact;
+    let message = "";
+    const contacts = await fs.readFile(contactsPath);
+    const dataToArray = JSON.parse(contacts);
+    const filterContact = dataToArray.findIndex(
+      (contact) => contact.id === contactId
+    );
+    if (filterContact === -1) {
+      message = "Failed to get contact: The contact does not exist.";
+      return { message, status: 404 };
+    }
+    return dataToArray[filterContact];
   } catch (error) {
     return { error };
   }
@@ -51,22 +33,61 @@ const getContactById = async (contactId) => {
 
 const removeContact = async ({ id: contactId }) => {
   try {
-    const contactRemoved = await contacts.findByIdAndDelete(contactId);
-    return contactRemoved;
+    let message = "";
+    const contacts = await fs.readFile(contactsPath);
+    const dataToArray = JSON.parse(contacts);
+    const filterContact = dataToArray.findIndex(
+      (contact) => contact.id === contactId
+    );
+    if (filterContact === -1) {
+      message = "Failed to remove contact: The contact does not exist.";
+      return { message, status: 404 };
+    }
+    dataToArray.splice(filterContact, 1);
+    await fs.writeFile(contactsPath, JSON.stringify(dataToArray));
+    message = "Contact was removed.";
+    return { message, status: 200 };
   } catch (error) {
     return { error };
   }
 };
 
-const addContact = async (body, email) => {
+const addContact = async (body) => {
   try {
-    const createdBy = await users.findOne({ email }).exec();
-    const newContact = await contacts.create({
-      ...body,
-      favorite: false,
-      owner: createdBy._id,
-    });
-    return { newContact, status: 200 };
+    const name = body.name || null;
+    const email = body.email || null;
+    const phone = body.phone || null;
+    let message = "";
+    const contacts = await fs.readFile(contactsPath);
+    const dataToArray = JSON.parse(contacts);
+    const filterContact = dataToArray.findIndex(
+      (contact) => contact.name === body.name
+    );
+    if (filterContact !== -1) {
+      message = "Failed to create contact: The contact already exist.";
+      return { message, status: 400 };
+    }
+    if (name === null) {
+      message = "Failed to create contact: name field not found.";
+      return { message, status: 400 };
+    }
+    if (email === null) {
+      message = "Failed to create contact: email field not found.";
+      return { message, status: 400 };
+    }
+    if (phone === null) {
+      message = "Failed to create contact: phone field not found.";
+      return { message, status: 400 };
+    }
+    const newContact = {
+      id: uuid(),
+      name: body.name,
+      phone: body.phone,
+      email: body.email,
+    };
+    dataToArray.push(newContact);
+    await fs.writeFile(contactsPath, JSON.stringify(dataToArray));
+    return { newContact, status: 201 };
   } catch (error) {
     return { error };
   }
@@ -74,21 +95,45 @@ const addContact = async (body, email) => {
 
 const updateContact = async (contactId, body) => {
   try {
-    const contactToUpdate = await contacts
-      .findByIdAndUpdate(contactId, body)
-      .exec();
-    return contactToUpdate;
-  } catch (error) {
-    return { error };
-  }
-};
-
-const updateFavoriteStatusContact = async (contactId, body) => {
-  try {
-    const contactToUpdateFavorite = await contacts
-      .findByIdAndUpdate(contactId, body)
-      .exec();
-    return contactToUpdateFavorite;
+    console.log("ContactId => ", contactId);
+    console.log("body => ", body);
+    const name = body.name || null;
+    const email = body.email || null;
+    const phone = body.phone || null;
+    let message = "";
+    const contacts = await fs.readFile(contactsPath);
+    const dataToArray = JSON.parse(contacts);
+    const filterContact = dataToArray.findIndex(
+      (contact) => contact.id === contactId
+    );
+    console.log(filterContact);
+    if (filterContact === -1) {
+      message = "Failed to remove contact: The contact does not exist.";
+      return { message, status: 404 };
+    }
+    if (name === null) {
+      message = "Failed to create contact: name field not found.";
+      return { message, status: 400 };
+    }
+    if (email === null) {
+      message = "Failed to create contact: email field not found.";
+      return { message, status: 400 };
+    }
+    if (phone === null) {
+      message = "Failed to create contact: phone field not found.";
+      return { message, status: 400 };
+    }
+    const updatedContact = {
+      name,
+      email,
+      phone,
+    };
+    dataToArray[filterContact] = {
+      ...dataToArray[filterContact],
+      ...updatedContact,
+    };
+    await fs.writeFile(contactsPath, JSON.stringify(dataToArray));
+    return { updatedContact, status: 200 };
   } catch (error) {
     return { error };
   }
@@ -100,7 +145,4 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
-  updateFavoriteStatusContact,
-  listFavoriteContacts,
-  listContactParams,
 };

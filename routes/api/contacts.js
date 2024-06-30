@@ -5,38 +5,18 @@ const {
   addContact,
   removeContact,
   updateContact,
-  updateFavoriteStatusContact,
-  listFavoriteContacts,
-  listContactParams,
 } = require("../../models/contacts");
 
 const router = express.Router();
 
-const { schema, id, favorite: fav } = require("../../validation/validation");
+const { schema, id } = require("../../validation/validation");
 
 router.get("/", async (req, res, next) => {
   try {
-    if (req.query.favorite) {
-      const favoritedata = await listFavoriteContacts(
-        req.email,
-        req.query.favorite
-      );
-      res.json({ data: favoritedata });
-    } else if (req.query.page && req.query.limit) {
-      const paramData = await listContactParams(
-        req.email,
-        req.query.page,
-        req.query.limit
-      );
-      res.json({
-        data: paramData,
-      });
-    } else {
-      const data = await listContacts(req.email);
-      res.json({
-        data: data,
-      });
-    }
+    const data = await listContacts();
+    res.json({
+      data: JSON.parse(data),
+    });
   } catch (error) {
     console.error(error);
   }
@@ -45,7 +25,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:contactId", async (req, res, next) => {
   try {
     const contact = await getContactById(req.params.contactId);
-    if (contact == null) {
+    if (JSON.stringify(contact) === "{}") {
       res.status(404);
       res.json({ message: "Not found." });
       return;
@@ -66,92 +46,43 @@ router.post("/", async (req, res, next) => {
       res.status(400);
       res.json(error.details);
     } else {
-      const newContact = await addContact(value, req.email);
+      const newContact = await addContact(value);
       res.status(newContact.status);
       res.json(newContact);
     }
   } catch (error) {
-    console.error(error);
+    return error;
   }
 });
 
 router.delete("/:contactId", async (req, res, next) => {
   try {
-    let message = "";
-    let status = 0;
     const { error, value } = id.validate({ id: req.params.contactId });
+    console.log(value);
     if (error) {
-      console.error(error);
+      console.log(error);
     } else {
-      const contactToRemove = await removeContact(value);
-      if (contactToRemove == null) {
-        message = "Contact does not exist";
-        status = 404;
-      } else {
-        message = "Contact was removed";
-        status = 200;
-      }
+      const { message, status } = await removeContact(value);
       res.status(status);
       res.json({ message });
     }
   } catch (error) {
-    console.error(error);
+    console.log(error);
   }
 });
 
 router.put("/:contactId", async (req, res, next) => {
-  try {
-    let status = 0;
-    const name = req.body.name;
-    const email = req.body.email;
-    const phone = req.body.phone;
-    let { error, value } = schema.validate({ name, email, phone });
-    if (error) {
-      res.status(400);
-      res.json(error.details);
-    } else {
-      const updateDataContact = await updateContact(
-        req.params.contactId,
-        value
-      );
-      if (updateDataContact == null) {
-        value = "Contact does not exist";
-        status = 404;
-      } else {
-        value = await getContactById(req.params.contactId);
-        status = 200;
-      }
-      res.status(status).json({ value });
-    }
-  } catch (error) {
-    console.error(error);
-  }
-});
-
-router.patch("/:contactId/favorite", async (req, res, next) => {
-  try {
-    let status = 0;
-    const favorite = req.body.favorite;
-    let { error, value } = fav.validate({ favorite });
-    if (error) {
-      res.status(400);
-      res.json(error.details);
-    } else {
-      const updateDataContact = await updateFavoriteStatusContact(
-        req.params.contactId,
-        value
-      );
-      if (updateDataContact == null) {
-        value = "Contact does not exist";
-        status = 404;
-      } else {
-        value = await getContactById(req.params.contactId);
-        status = 200;
-      }
-      res.status(status).json({ value });
-    }
-  } catch (error) {
-    console.error(error);
+  const name = req.body.name;
+  const email = req.body.email;
+  const phone = req.body.phone;
+  const { error, value } = schema.validate({ name, email, phone });
+  if (error) {
+    res.status(400);
+    res.json(error.details);
+  } else {
+    const updateDataContact = await updateContact(req.params.contactId, value);
+    console.log("updateContact => ", updateDataContact);
+    res.json(updateDataContact);
   }
 });
 
